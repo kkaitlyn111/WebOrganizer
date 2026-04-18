@@ -1,0 +1,97 @@
+# Stats 305C Project — Milestone 2 (Data + EDA)
+
+I'm on **Milestone 2** of a graduate applied stats project. Deliverable: 1–2 page PDF with key figures + public GitHub repo + Jupyter notebooks. I have ~2 days.
+
+Milestone 2 requires: (a) **data description** (provenance, format, preprocessing, summary stats, cleaning), (b) **exploratory analysis** (visualize, describe patterns/anomalies/distributions), (c) **refined model sketch** (distributional assumptions, latent structure).
+
+## Scientific question
+
+**Do different quality filters agree on what makes a web document "high-quality," and where do they systematically diverge?**
+
+I extend WebOrganizer (Wettig et al., ICML 2025), which showed filters implicitly reweight domain mixtures but did not model continuous scores, joint filter structure, or within-domain effects. Per WebOrganizer Table 2, DCLM-fasttext's gains are only ~35% recovered by domain effects — substantial within-domain selection is unexplained. My contribution: hierarchical Bayesian variance decomposition of multiple continuous filter scores across topic, format, URL domain, and doc-level features — plus cross-filter posterior covariances at each level.
+
+## Data: WebOrganizer/Corpus-200B
+
+200B-token cleaned/deduped CommonCrawl subset from DCLM 1b-1x pool. **9888 shards**. Each shard ships with aligned `.npy` files:
+- `scores_dclm-fasttext/`, `scores_fineweb-edu/` — continuous quality scores
+- `domains_topics/`, `domains_formats/` — top-1 label (24 categories each) + logits
+- `domains_clusters-k24/` — k-means assignments
+- `tokens/` — GPT-NeoX token counts
+- `documents/` — `.jsonl.zst` shards with raw text + URL
+
+**Subsample: 1% shard-level random (100/9888 shards).** Fixed seed, save indices to `data/sampled_shards.json`. All scripts operate only on sampled shards.
+
+## Filter inventory (10 continuous scores)
+
+Four methodologically distinct families:
+1. **DCLM-fasttext** (given): bigram classifier, OH-2.5+ELI5 positives
+2. **FineWeb-Edu** (given): neural classifier distilled from Llama-3-70B
+3. **Perplexity-correlations fastText** (Thrush et al., ICLR 2025) — 4 benchmark-specific filters, CPU-only, ~2000 docs/sec:
+   - `perplexity-correlations/fasttext-{arc-easy,piqa,sciq,lambada}-target`
+4. **QuRater-1.3B** (Wettig et al.) — GPU, 4 interpretable axes: `writing_style`, `required_expertise`, `facts_and_trivia`, `educational_value`. Use `qurater_annotate.py` from `princeton-nlp/QuRating`.
+
+NOT doing: training own filters, LLM-as-judge, OLMo 2/3 classifiers (not released standalone).
+
+## Part 1: Feature extraction pipeline
+
+**1A. Load existing `.npy` annotations** — concat across sampled shards.
+
+**1B. Single-pass JSONL extraction** (decompress `.jsonl.zst` ONCE per shard):
+- **URL domain:** `urlparse(url).netloc`, strip `www.`, build int vocab, save per-shard.
+- **16 heuristic features** (Gopher/MassiveText/C4/RefinedWeb style):
+  `char_count`, `word_count`, `mean_word_length`, `frac_alpha`, `frac_digit`, `frac_punctuation`, `frac_uppercase`, `frac_lines_terminal_punct` (ends in `.?!"`), `frac_lines_bullet` (starts `-`, `*`, `•`, `\d+\.`), `type_token_ratio`, `stopword_fraction`, `ngram_rep_{2,3,4}` (fraction of text covered by repeated n-grams — optimize with `collections.Counter`, not nested loops), `num_lines`, `mean_line_length`.
+
+**1C. Run additional filters:** 4 perplexity-corr fastText (CPU, replace `\n`→space before `model.predict`); QuRater-1.3B (Slurm array, ~15 concurrent A100-40G). Save `.npy` per shard per score.
+
+**1D. Derived features** (arithmetic only):
+- **Within-topic percentiles** for all 6 raw quality scores (DCLM, FWE, 4 perp-corr). Captures OLMo 3's topic-relative quality insight.
+- **Within-format percentiles** (same).
+
+## Part 2: EDA notebooks
+
+**Notebook 1 — Sanity checks:**
+1. Histograms of all 10 quality scores (NaN/inf/clipping/bimodality/tails; note Gaussian vs skewed → informs likelihood).
+2. Topic/format bar charts vs WebOrganizer's published proportions.
+3. Token-count histogram (log-scale).
+4. URL domain Zipf plot; report #domains with >100, >1000 docs (motivates partial pooling).
+5. Histograms of 16 heuristic features; flag near-zero-variance/extreme skew.
+
+**Notebook 2 — Bivariate:**
+6. Pairwise correlation heatmap of 10 scores. Do perp-corr filters cluster? Does QuRater-educational_value correlate with FWE?
+7. Violin/box plots: each score × 24 topics.
+8. Same × 24 formats.
+9. Scatter: scores vs heuristics (length, repetition, TTR).
+10. Scatter: raw DCLM vs within-topic DCLM percentile, colored by topic (same for FWE) — shows quality is topic-relative.
+
+**Notebook 3 — Hierarchy:**
+11. ANOVA-style R² (frequentist preview): (a) topic, (b) format, (c) topic+format, (d) +top-50 URL domains, (e) +heuristics. Stacked bar per filter.
+12. Cross-filter correlation at each level: topic-level means across filters; within-topic residuals across filters; same for format.
+13. Top-50 URL domains × filters heatmap of mean scores.
+14. Spearman rank agreement: globally vs within-topic (heatmap).
+
+## Part 3: Model sketch
+
+**Multivariate hierarchical linear model.** For filter k, doc i:
+
+  y_ik = α_k^(topic)[t_i] + α_k^(format)[f_i] + α_k^(domain)[d_i] + x_i^T β_k + ε_ik
+
+- Partial pooling priors on α^(topic), α^(format), α^(domain) (domain is where partial pooling matters most — Zipfian).
+- x_i = heuristic covariates.
+- ε_i ~ MVN_K (captures cross-filter residual correlations).
+- Transformations per EDA marginals (log/logit as needed).
+
+Outputs: (1) variance decomp per filter, (2) cross-filter covariance at each level, (3) β_k — what each filter rewards beyond domain. Follow-ups: factor model on residuals; latent-class model if time.
+
+## Constraints + working style
+
+- ~2 days total. ~15 concurrent A100-40G Slurm jobs. Substantial CPU.
+- Save seeds, shard lists, intermediate artifacts. numpy/pandas/matplotlib/seaborn/scipy/sklearn.
+- **Debug on 1 doc / 1 shard before long jobs.** Iterate fast.
+- **Ask before major design decisions. Show plan before writing long scripts.**
+- Likely script order: `00_subsample_shards.py` → `01_load_npy.py` → `02_extract_jsonl_features.py` (the complex one: single-pass decompress + URL + 16 heuristics) → `03_run_fasttext_filters.py` → `04_qurater_slurm.py` → `05_derived_percentiles.py`.
+
+## Later milestones (context)
+
+- **M3 (Week 6):** full generative model, inference (MCMC/VI/EM), posterior analysis, baseline comparison.
+- **M4 (Week 8):** posterior predictive checks, sensitivity analysis, revision, comparison.
+- **Final:** 8-page AISTATS paper. Repo commit history must show iterative progress.

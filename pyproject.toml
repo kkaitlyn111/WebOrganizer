@@ -1,0 +1,11 @@
+[project]
+name = "weborganizer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "hub>=3.0.1",
+    "huggingface>=0.0.1",
+    "huggingface-hub>=1.11.0",
+]
