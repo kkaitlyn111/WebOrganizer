@@ -1,0 +1,10 @@
+# Large artifacts — not in git
+data/*
+!data/sampled_shards.json
+models/
+logs/
+
+# Notebook + python junk
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
