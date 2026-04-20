@@ -36,8 +36,7 @@ PC_FASTTEXT_MODELS = {
     "arc_easy":   ("perplexity-correlations/fasttext-arc-easy-target",   "arc_easy_target.bin"),
     "piqa":       ("perplexity-correlations/fasttext-piqa-target",       "piqa_target.bin"),
     "sciq":       ("perplexity-correlations/fasttext-sciq-target",       "sciq_target.bin"),
-    # using spanish variant for now
-    "lambada_es": ("perplexity-correlations/fasttext-lambada-es-target", "lambada_es_target.bin"),
+    "lambada":    ("perplexity-correlations/fasttext-lambada-target",    "lambada_target.bin"),
 }
 
 
