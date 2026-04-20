@@ -5,7 +5,7 @@ SEED = 42
 N_SHARDS = 100
 TOTAL_SHARDS = 9888
 
-REPO_ROOT = Path("/juice5b/scr5b/kaitwang/stats305c/WebOrganizer")
+REPO_ROOT = Path(__file__).resolve().parent.parent
 CORPUS_ROOT = REPO_ROOT / "Corpus-200B"
 M2_ROOT = REPO_ROOT / "milestone2"
 DATA_ROOT = M2_ROOT / "data"
