@@ -65,6 +65,9 @@ The M-step updates $\alpha,\Lambda,\psi$ by least squares using
 $\mathbb{E}[h_i]$ and $\mathbb{E}[h_i h_i^\top]$, and updates $\Gamma$ by
 ridge regression of $\mathbb{E}[h_i]$ on $z_i$ (equivalently a Gaussian prior
 on the covariate effects). The two-factor EM run converged in 180 iterations.
+The approximate observed-data log likelihood increased from $-746{,}210$ to
+$-678{,}610$, with final increment 0.067, so the optimization was stable rather
+than stopped manually.
 For held-out covariate-only prediction, RMSE is 0.898; conditioning on the
 observed filters gives reconstruction RMSE 0.625. We use the posterior expected
 average reconstructed score as the latent data-mix score.
@@ -90,6 +93,11 @@ average reconstructed score as the latent data-mix score.
 Figure~\ref{fig:v2-main}a shows the learned loadings. Factor 1 is a benchmark
 axis: ARC-Easy loads 0.87, PIQA 0.80, and SciQ 0.47. Factor 2 is a
 DCLM/FineWeb/LAMBADA axis, with loadings 0.27, 0.27, and 0.23 respectively.
+On the held-out set, Factor 1 correlates 0.71 with composite quality and Factor
+2 correlates 0.45, so both axes matter for selection. The unique variances are
+smallest for ARC-Easy (0.064) and PIQA (0.186), meaning the benchmark axis is
+highly coherent, while DCLM, FineWeb-Edu, SciQ, and LAMBADA retain more
+filter-specific noise.
 Thus the model gives a sharper version of the Milestone 2 EDA: there is not a
 single universal quality filter, but there are two coherent latent axes. This
 also explains why the earlier single-response hierarchical regression improved
@@ -108,7 +116,12 @@ the two-factor topic-floor policy reaches 0.680 with all 24 topics covered and
 topic entropy 0.910. The simple average of all six filters is an upper-bound
 reference at 0.772; our model does not beat this tautological score, but it
 gives an interpretable probabilistic decomposition and a tunable data-mix
-frontier.
+frontier. We also separate two use cases: if only metadata and heuristics are
+available, the two-factor prior score is only 0.395 and does not improve on
+DCLM; if the six filters are available, the posterior score denoises and
+rebalances them. Thus the practical workflow is to score candidate documents
+with the available filters, infer posterior latent axes, and choose a mixture
+from the frontier rather than trusting a single global ranker.
 
 \begin{figure}[H]
   \centering
@@ -123,6 +136,10 @@ frontier.
 Figure~\ref{fig:v2-main}b varies the within-topic floor. At a 20\% floor, the
 two-factor model reaches topic entropy 0.964, matching within-topic DCLM-level
 diversity, while still achieving quality 0.638, far above global DCLM's 0.405.
+The best frontier point is near a 10\% topic floor: quality 0.681 and entropy
+0.923. This is the recommended default if the goal is quality with some topic
+protection; the 20\% floor is the safer choice if the pretraining mixture must
+look closer to the full corpus topic distribution.
 The bootstrap improvement of the two-factor topic-floor policy over DCLM is
 0.274 standardized units, with 95\% interval $(0.261,0.291)$
 (Figure~\ref{fig:v2-robust}). This directly answers the feedback: the model
@@ -132,9 +149,22 @@ quality-diversity frontier for choosing a pretraining data mix.
 \paragraph{Limitations.}
 This still evaluates against held-out filter scores, not downstream LM loss.
 The next validation should train tiny language models on DCLM, average-filter,
-and two-factor-frontier mixtures at matched token budgets. Also, FineWeb-Edu is
-rounded ordinal and should eventually use an ordinal likelihood; QuRater should
-enter once all sampled shards are scored.
+and two-factor-frontier mixtures at matched token budgets, then compare
+validation loss and benchmark accuracy. The posterior policy also uses the same
+six filters that define the composite target, so it should be interpreted as a
+principled smoothing and decomposition method, not proof that the composite is
+the right objective. Also, FineWeb-Edu is rounded ordinal and should eventually
+use an ordinal likelihood; QuRater should enter once all sampled shards are
+scored.
+
+\paragraph{Reproducibility.}
+The repository contains the full pipeline in numbered experiment scripts:
+factor EM fitting, policy evaluation, quality-diversity frontiers, bootstrap
+intervals, and figure generation. We fixed train/test splits and random seeds,
+stored generated artifacts separately from source code, and used the compiled
+figures in this report directly from those local runs. The experimental branch
+also contains staged commits for each modeling step, matching the milestone
+requirement that repository history document progress.
 
 \paragraph{AI assistance.}
 We used Codex and Claude Code for code generation, debugging, and report
