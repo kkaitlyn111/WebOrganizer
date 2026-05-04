@@ -20,6 +20,8 @@ PREPARED_MODEL_SUMMARY_JSON = ARTIFACTS_DIR / "prepared_model_data_summary.json"
 PREPARED_SAMPLE_METADATA_PARQUET = ARTIFACTS_DIR / "prepared_sample_metadata.parquet"
 BASELINE_RESULTS_JSON = ARTIFACTS_DIR / "baseline_results.json"
 BASELINE_PREDICTIONS_NPZ = ARTIFACTS_DIR / "baseline_predictions.npz"
+GIBBS_RESULTS_JSON = ARTIFACTS_DIR / "gibbs_results.json"
+GIBBS_DRAWS_NPZ = ARTIFACTS_DIR / "gibbs_draws.npz"
 
 PC_MODELS = ["arc_easy", "piqa", "sciq", "lambada", "lambada_es"]
 MODEL_SCORE_COLUMNS = [
