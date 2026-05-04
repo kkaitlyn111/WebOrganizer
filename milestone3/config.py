@@ -15,8 +15,26 @@ QURATER_DIR = DATA_ROOT / "scores_qurater"
 
 MODEL_FRAME_PARQUET = ARTIFACTS_DIR / "model_frame.parquet"
 MODEL_FRAME_SUMMARY_JSON = ARTIFACTS_DIR / "model_frame_summary.json"
+PREPARED_MODEL_NPZ = ARTIFACTS_DIR / "prepared_model_data.npz"
+PREPARED_MODEL_SUMMARY_JSON = ARTIFACTS_DIR / "prepared_model_data_summary.json"
+PREPARED_SAMPLE_METADATA_PARQUET = ARTIFACTS_DIR / "prepared_sample_metadata.parquet"
 
 PC_MODELS = ["arc_easy", "piqa", "sciq", "lambada", "lambada_es"]
+MODEL_SCORE_COLUMNS = [
+    "dclm_score",
+    "fwedu_rounded",
+    "pc_arc_easy",
+    "pc_piqa",
+    "pc_sciq",
+    "pc_lambada",
+]
+PROBABILITY_SCORE_COLUMNS = [
+    "dclm_score",
+    "pc_arc_easy",
+    "pc_piqa",
+    "pc_sciq",
+    "pc_lambada",
+]
 QURATER_AXES = [
     "writing_style",
     "required_expertise",
@@ -44,6 +62,13 @@ HEURISTIC_COLS = [
 ]
 
 URL_COLS = ["url", "url_netloc", "url_registered_domain"]
+LOG1P_FEATURE_COLS = [
+    "token_count",
+    "char_count",
+    "word_count",
+    "num_lines",
+    "mean_line_length",
+]
 
 
 def shard_stem(shard_idx: int) -> str:
@@ -52,4 +77,3 @@ def shard_stem(shard_idx: int) -> str:
 
 def parse_shard_idx_from_stem(stem: str) -> int:
     return int(stem.split("_")[2])
-
