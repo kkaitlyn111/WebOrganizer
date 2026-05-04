@@ -2,6 +2,11 @@ __pycache__/
 .DS_Store
 QuRating/
 .claude/
+Codex_Memory/
+data/
+milestone3/artifacts/
+milestone3/figures/
+milestone3/reports/
 
 # Milestone 2 large data files — keep sampled_shards.json, exclude everything else
 milestone2/data/annotations*.parquet

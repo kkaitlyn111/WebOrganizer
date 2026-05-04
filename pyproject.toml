@@ -13,6 +13,7 @@ dependencies = [
     "jupyter-core>=5.9.1",
     "matplotlib>=3.10.8",
     "nbconvert[webpdf]>=7.17.1",
+    "pyarrow>=24.0.0",
     "scipy>=1.17.1",
     "seaborn>=0.13.2",
 ]
