@@ -6,6 +6,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 M3_ROOT = REPO_ROOT / "milestone3"
 DATA_ROOT = REPO_ROOT / "data"
 ARTIFACTS_DIR = M3_ROOT / "artifacts"
+FIGURES_DIR = M3_ROOT / "figures"
 
 SAMPLED_SHARDS_JSON = DATA_ROOT / "sampled_shards.json"
 ANNOTATIONS_PARQUET = DATA_ROOT / "annotations.parquet"
@@ -22,6 +23,9 @@ BASELINE_RESULTS_JSON = ARTIFACTS_DIR / "baseline_results.json"
 BASELINE_PREDICTIONS_NPZ = ARTIFACTS_DIR / "baseline_predictions.npz"
 GIBBS_RESULTS_JSON = ARTIFACTS_DIR / "gibbs_results.json"
 GIBBS_DRAWS_NPZ = ARTIFACTS_DIR / "gibbs_draws.npz"
+POSTERIOR_SUMMARY_JSON = ARTIFACTS_DIR / "posterior_summary.json"
+DATA_MIX_RESULTS_JSON = ARTIFACTS_DIR / "data_mix_results.json"
+DATA_MIX_SELECTIONS_PARQUET = ARTIFACTS_DIR / "data_mix_selections.parquet"
 
 PC_MODELS = ["arc_easy", "piqa", "sciq", "lambada", "lambada_es"]
 MODEL_SCORE_COLUMNS = [
