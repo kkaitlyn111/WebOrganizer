@@ -9,3 +9,4 @@ roberta.pooler.dense.bias   | UNEXPECTED |  |
 Notes:
 - UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
 ai_detector:   0%|          | 0/1 [00:00<?, ?it/s]Token indices sequence length is longer than the specified maximum sequence length for this model (11271 > 512). Running this sequence through the model will result in indexing errors
+                                                  ai_detector:   0%|          | 0/1 [01:41<?, ?it/s]ai_detector: 100%|██████████| 1/1 [01:41<00:00, 101.77s/it]ai_detector: 100%|██████████| 1/1 [01:41<00:00, 101.77s/it]
