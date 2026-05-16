@@ -1,0 +1,2 @@
+/var/lib/slurm/slurmd/job15450991/slurm_script: line 23: 3244199 Killed                  ../.venv/bin/python3 07_score_textbook_quality.py --shards "${SHARD}" --n-workers 1
+[2026-05-15T21:04:08.661] error: Detected 1 oom_kill event in StepId=15450991.batch. Some of the step tasks have been OOM Killed.

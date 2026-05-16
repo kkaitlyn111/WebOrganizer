@@ -1,0 +1,7 @@
+Array task 46 -> shard 4692
+Processing 1 shards with 1 workers (max_docs=None, overwrite=False)
+Output: /juice5b/scr5b/kaitwang/stats305c/WebOrganizer/milestone2/data/features_synth
+  shard 4692: 19428 docs in 63.1s
+
+Total docs: 19,428
+Summed worker time: 63.1s (308 docs/sec/worker)
