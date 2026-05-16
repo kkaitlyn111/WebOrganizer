@@ -2,16 +2,6 @@ __pycache__/
 .DS_Store
 QuRating/
 .claude/
-Codex_Memory/
-data/
-Stats305CProject_Angikarghosal/
-Stats305C_Project_AngikarGhosal_KaitlynWang/
-milestone3/artifacts/
-milestone3/figures/
-milestone3/reports/
-milestone3_experiments/artifacts/
-milestone3_experiments/figures/
-milestone3_experiments/reports/
 
 # Milestone 2 large data files — keep sampled_shards.json, exclude everything else
 milestone2/data/annotations*.parquet
@@ -24,13 +14,6 @@ milestone2/data/scores_qurater_smoke/
 *.npy
 CLAUDE.md
 milestone2/NOTES.md
+milestone4/logs/
 CLAUDE.md.new
-
-# LaTeX build byproducts
-*.aux
-*.log
-*.out
-*.toc
-*.fls
-*.fdb_latexmk
-*.synctex.gz
+Corpus-200B

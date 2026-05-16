@@ -1,4 +1,0 @@
-Array task 6 -> shard 904
-device=cuda; loading openai-community/roberta-base-openai-detector
-fake_idx=0  id2label={0: 'Fake', 1: 'Real'}
-  shard 904: (14208,) in 53.4s

@@ -1,2 +1,0 @@
-Array task 4 -> shard 841
-Processing 1 shards single-process (spaCy is best parallelized via Slurm job array, not python multiproc).

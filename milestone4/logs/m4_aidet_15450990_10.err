@@ -1,12 +1,0 @@
-`torch_dtype` is deprecated! Use `dtype` instead!
-Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights:   4%|▍         | 9/201 [00:03<01:11,  2.67it/s]Loading weights:  74%|███████▍  | 149/201 [00:03<00:00, 55.29it/s]Loading weights:  89%|████████▊ | 178/201 [00:03<00:00, 62.84it/s]Loading weights: 100%|█████████▉| 200/201 [00:04<00:00, 61.86it/s]Loading weights: 100%|██████████| 201/201 [00:04<00:00, 46.91it/s]
-[1mRobertaForSequenceClassification LOAD REPORT[0m from: openai-community/roberta-base-openai-detector
-Key                         | Status     |  | 
-----------------------------+------------+--+-
-roberta.pooler.dense.bias   | UNEXPECTED |  | 
-roberta.pooler.dense.weight | UNEXPECTED |  | 
-
-Notes:
-- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
-ai_detector:   0%|          | 0/1 [00:00<?, ?it/s]Token indices sequence length is longer than the specified maximum sequence length for this model (1933 > 512). Running this sequence through the model will result in indexing errors
-                                                  ai_detector:   0%|          | 0/1 [01:38<?, ?it/s]ai_detector: 100%|██████████| 1/1 [01:38<00:00, 98.05s/it]ai_detector: 100%|██████████| 1/1 [01:38<00:00, 98.05s/it]
