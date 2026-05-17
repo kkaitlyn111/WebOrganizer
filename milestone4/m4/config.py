@@ -26,8 +26,8 @@ TRAIN_DOC_OFFSETS = TOKENS_DIR / "train_pool_doc_offsets.npy"
 TRAIN_DOC_INDEX = TOKENS_DIR / "train_pool_doc_index.npy"  # global doc idx per token-row
 VAL_TOKEN_IDS = TOKENS_DIR / "val_token_ids.bin"
 VAL_DOC_OFFSETS = TOKENS_DIR / "val_doc_offsets.npy"
-VAL_SEQUENCES = TOKENS_DIR / "val_sequences.npy"
-VAL_SEQUENCES_EVAL = TOKENS_DIR / "val_sequences_eval.npy"  # subsample for fast eval
+VAL_SEQUENCES = TOKENS_DIR / "val_sequences_1024.npy"
+VAL_SEQUENCES_EVAL = TOKENS_DIR / "val_sequences_eval_1024.npy"  # subsample for fast eval
 TOKENS_META = TOKENS_DIR / "tokens_meta.json"
 
 # Per-shard pretokenized files
@@ -35,7 +35,7 @@ PERSHARD_TOKENS_DIR = TOKENS_DIR / "pershard"
 
 # Constants
 SEED = 42
-SEQ_LEN = 2048
+SEQ_LEN = 1024
 TOKENIZER_NAME = "EleutherAI/gpt-neox-20b"
 N_LM_VAL_SHARDS = 10
 

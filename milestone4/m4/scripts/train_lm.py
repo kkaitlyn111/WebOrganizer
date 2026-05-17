@@ -26,7 +26,7 @@ from transformers import LlamaConfig, LlamaForCausalLM
 class TrainConfig:
     batch_size: int = 64          # effective batch size (token-rate target)
     micro_batch_size: int = 16    # actual forward batch (per accumulation step)
-    seq_len: int = 2048
+    seq_len: int = 1024
     total_tokens: int = 1_000_000_000
     lr: float = 7e-3
     warmup_frac: float = 0.10
@@ -39,8 +39,9 @@ class TrainConfig:
     eval_every: int = 0           # if >0, eval val_loss every N steps
     log_every: int = 200
     eval_micro_batch: int = 16
-    compile_model: bool = True
+    compile_model: bool = True    # only compiles the backbone (not the head)
     bf16: bool = True             # auto-disabled if unsupported
+    ce_chunk_size: int = 16384    # chunk size for chunked CE (tokens)
 
 
 def build_model(vocab_size: int) -> LlamaForCausalLM:
@@ -104,24 +105,44 @@ def prepare_token_stream(selected_token_arrays, total_tokens, seq_len,
     return stream[perm]
 
 
-def _chunked_ce_sum(logits, labels, chunk=128):
-    """Compute sum cross-entropy without materializing huge logits gradients.
-    logits: (B, T, V) (possibly bf16), labels: (B, T) int64.
+def chunked_loss(backbone, lm_head_weight, input_ids, labels,
+                  bf16: bool, chunk_size: int = 4096,
+                  reduction: str = "mean"):
+    """Memory-efficient cross-entropy that NEVER materializes the full
+    (B*T, V) logits or its gradient.
+
+    Computes hidden = backbone(input_ids), then loops over chunks of (B*T)
+    tokens, projecting hidden->logits and CE per chunk. The largest tensor
+    materialized is (chunk_size, V) — at chunk=4096 and V=50304 in bf16
+    that's only ~400 MB, vs. the 6.6 GB at (B*T=65536, V) for micro=32 seq=2048.
+
+    Backward then accumulates grad w.r.t. lm_head_weight & hidden chunk-by-chunk.
+
+    reduction: "mean" returns scalar loss = sum/total_tokens.
+               "sum"  returns scalar loss = sum.
     """
-    V = logits.size(-1)
-    flat_logits = logits.reshape(-1, V)
+    with torch.amp.autocast("cuda", enabled=bf16, dtype=torch.bfloat16):
+        hidden = backbone(input_ids=input_ids).last_hidden_state  # (B, T, H)
+    H = hidden.size(-1)
+    flat_hidden = hidden.reshape(-1, H)
     flat_labels = labels.reshape(-1)
-    total = 0.0
-    for i in range(0, flat_logits.size(0), chunk * logits.size(1)):
-        # We chunk by rows of (B*T)
-        j = min(i + chunk * logits.size(1), flat_logits.size(0))
-        l = F.cross_entropy(flat_logits[i:j].float(), flat_labels[i:j], reduction="sum")
-        total = total + l.item() if isinstance(total, float) else total + l.item()
-    return total
+    N = flat_hidden.size(0)
+    total_sum = None
+    for i in range(0, N, chunk_size):
+        j = min(i + chunk_size, N)
+        with torch.amp.autocast("cuda", enabled=bf16, dtype=torch.bfloat16):
+            chunk_logits = flat_hidden[i:j] @ lm_head_weight.t()  # (c, V)
+            chunk_loss = F.cross_entropy(chunk_logits, flat_labels[i:j],
+                                          reduction="sum")
+        total_sum = chunk_loss if total_sum is None else total_sum + chunk_loss
+    if reduction == "mean":
+        return total_sum / N
+    return total_sum
 
 
-def evaluate(model, val_sequences, device, bf16, batch_size):
-    model.eval()
+def evaluate(backbone, lm_head_weight, val_sequences, device, bf16,
+              batch_size, chunk_size=4096):
+    backbone.eval()
     total_loss = 0.0
     total_n = 0
     with torch.no_grad():
@@ -130,16 +151,12 @@ def evaluate(model, val_sequences, device, bf16, batch_size):
             batch_t = torch.from_numpy(batch.astype(np.int64)).to(device)
             input_ids = batch_t[:, :-1]
             labels = batch_t[:, 1:]
-            with torch.amp.autocast("cuda", enabled=bf16, dtype=torch.bfloat16):
-                logits = model(input_ids=input_ids).logits
-                loss = F.cross_entropy(
-                    logits.float().reshape(-1, logits.size(-1)),
-                    labels.reshape(-1),
-                    reduction="sum",
-                )
-            total_loss += loss.item()
+            loss_sum = chunked_loss(backbone, lm_head_weight, input_ids, labels,
+                                     bf16=bf16, chunk_size=chunk_size,
+                                     reduction="sum")
+            total_loss += loss_sum.item()
             total_n += labels.numel()
-    model.train()
+    backbone.train()
     return float(total_loss / total_n)
 
 
@@ -161,10 +178,16 @@ def train_and_eval(packed_train_sequences: np.ndarray,
     bf16 = cfg.bf16 and _supports_bf16()
     model = build_model(cfg.vocab_size).to(device)
     print(f"  attn_impl: {getattr(model.config, '_attn_implementation', '?')}")
+
+    # Split lm_head from the backbone so we can use a chunked CE.
+    # The lm_head weight is tied to the input embedding, so grads accumulate
+    # to the shared parameter correctly when we use lm_head.weight directly.
+    backbone = model.model           # LlamaModel — outputs hidden states
+    lm_head_weight = model.lm_head.weight  # (V, H), tied to embed_tokens.weight
     compiled = False
     if cfg.compile_model:
         try:
-            model = torch.compile(model, mode="default", fullgraph=False)
+            backbone = torch.compile(backbone, mode="default", fullgraph=False)
             compiled = True
         except Exception as e:
             print(f"  torch.compile failed: {e}")
@@ -227,12 +250,9 @@ def train_and_eval(packed_train_sequences: np.ndarray,
                 seq_cursor += cfg.micro_batch_size
             input_ids = batch_t[:, :-1]
             labels = batch_t[:, 1:]
-            with torch.amp.autocast("cuda", enabled=bf16, dtype=torch.bfloat16):
-                logits = model(input_ids=input_ids).logits
-                loss = F.cross_entropy(
-                    logits.float().reshape(-1, logits.size(-1)),
-                    labels.reshape(-1),
-                ) / accum_steps
+            loss = chunked_loss(backbone, lm_head_weight, input_ids, labels,
+                                 bf16=bf16, chunk_size=cfg.ce_chunk_size,
+                                 reduction="mean") / accum_steps
             loss.backward()
             step_loss = step_loss + loss.detach()
         torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip)
@@ -258,8 +278,9 @@ def train_and_eval(packed_train_sequences: np.ndarray,
     # Sync final losses
     all_losses = torch.stack(loss_tensors).float().cpu().numpy() if loss_tensors else np.array([])
     final_train_loss = float(all_losses[-100:].mean()) if len(all_losses) else None
-    val_loss = evaluate(model, val_sequences, device, bf16,
-                         batch_size=cfg.eval_micro_batch)
+    val_loss = evaluate(backbone, lm_head_weight, val_sequences, device, bf16,
+                         batch_size=cfg.eval_micro_batch,
+                         chunk_size=cfg.ce_chunk_size)
     print(f"  val_loss = {val_loss:.4f}")
     if wandb_run is not None:
         wandb_run.summary["val_loss"] = float(val_loss)

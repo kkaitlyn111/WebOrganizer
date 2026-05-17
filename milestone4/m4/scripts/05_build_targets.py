@@ -30,9 +30,10 @@ def main():
     ap.add_argument("--output", type=Path, default=DATA_DIR / "document_quality_target.npy")
     ap.add_argument("--require-min", type=int, default=20,
                     help="Min #runs that must include a doc for it to receive a target")
+    ap.add_argument("--configs", type=Path, default=DIAGNOSTIC_CONFIGS_JSON)
     args = ap.parse_args()
 
-    configs = json.loads(DIAGNOSTIC_CONFIGS_JSON.read_text())
+    configs = json.loads(args.configs.read_text())
     n_runs_planned = len(configs)
     # Collect valid runs (have both mask and result with val_loss)
     val_losses = []

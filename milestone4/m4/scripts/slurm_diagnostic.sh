@@ -2,7 +2,7 @@
 #SBATCH --job-name=m4_diag
 #SBATCH --partition=jag-standard,jag-lo,sphinx-lo,sphinx
 #SBATCH --gres=gpu:1
-#SBATCH --exclude=jagupard20,jagupard26,jagupard27,jagupard28,jagupard29,jagupard30,jagupard31
+#SBATCH --constraint=40G|48G|80G|141G
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=24G
 #SBATCH --time=01:00:00
@@ -29,4 +29,5 @@ nvidia-smi --query-gpu=name,memory.total --format=csv
 
 .venv/bin/python3 milestone4/m4/scripts/run_diagnostic.py --run-id "$RUN_ID" \
     --configs milestone4/m4/data/diagnostic_run_configs_trimmed.json \
-    --total-tokens 300000000 --unique-tokens 150000000
+    --total-tokens 150000000 --unique-tokens 150000000 \
+    --wandb-project datamixes

@@ -147,7 +147,7 @@ def main():
                           "Drop the run if selection has fewer. Set 0 to disable.")
     ap.add_argument("--micro-batch-size", type=int, default=None,
                     help="Auto-pick based on GPU memory if not set")
-    ap.add_argument("--wandb-project", default="m4-diagnostic")
+    ap.add_argument("--wandb-project", default="datamixes")
     ap.add_argument("--no-wandb", action="store_true")
     ap.add_argument("--no-eval", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
@@ -238,7 +238,12 @@ def main():
     if micro is None and torch.cuda.is_available():
         gpu_mem_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
         # Heuristic: 40GB A100 -> 16; 24GB 3090 -> 4
-        micro = 16 if gpu_mem_gb >= 35 else 4
+        # Tier: 24GB->4, 40GB->16, 49GB->32, 80GB->64, 141GB->96
+        if gpu_mem_gb >= 100:        micro = 96
+        elif gpu_mem_gb >= 70:       micro = 64
+        elif gpu_mem_gb >= 45:       micro = 32
+        elif gpu_mem_gb >= 35:       micro = 16
+        else:                         micro = 4
         print(f"  auto micro_batch_size={micro} (gpu_mem={gpu_mem_gb:.1f}GB)")
     tcfg = TrainConfig(total_tokens=args.total_tokens,
                         seed=args.seed + args.run_id,
