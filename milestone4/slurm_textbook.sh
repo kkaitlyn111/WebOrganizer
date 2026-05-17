@@ -3,7 +3,7 @@
 #SBATCH --partition=jag-standard,jag-lo
 #SBATCH --array=0-99%30
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=6G
+#SBATCH --mem=16G
 #SBATCH --time=02:00:00
 #SBATCH --account=nlp
 #SBATCH --output=logs/m4_textbook_%A_%a.out

@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=m4_aidet
-#SBATCH --partition=jag-standard,jag-lo
+#SBATCH --partition=jag-standard,jag-lo,sphinx-lo
 #SBATCH --exclude=jagupard19,jagupard20
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
-#SBATCH --array=0-99%15
+#SBATCH --array=0-99%20
 #SBATCH --time=02:00:00
 #SBATCH --account=nlp
 #SBATCH --output=logs/m4_aidet_%A_%a.out
