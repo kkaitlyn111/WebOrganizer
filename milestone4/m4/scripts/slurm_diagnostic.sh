@@ -5,7 +5,7 @@
 #SBATCH --exclude=jagupard20,jagupard26,jagupard27,jagupard28,jagupard29,jagupard30,jagupard31
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=24G
-#SBATCH --time=00:30:00
+#SBATCH --time=01:00:00
 #SBATCH --account=nlp
 #SBATCH --output=/juice5b/scr5b/kaitwang/stats305c/WebOrganizer/milestone4/m4/logs/diag_%A_%a.out
 #SBATCH --error=/juice5b/scr5b/kaitwang/stats305c/WebOrganizer/milestone4/m4/logs/diag_%A_%a.err
@@ -27,4 +27,6 @@ RUN_ID=${SLURM_ARRAY_TASK_ID}
 echo "=== run_id=$RUN_ID on $(hostname) ==="
 nvidia-smi --query-gpu=name,memory.total --format=csv
 
-.venv/bin/python3 milestone4/m4/scripts/run_diagnostic.py --run-id "$RUN_ID"
+.venv/bin/python3 milestone4/m4/scripts/run_diagnostic.py --run-id "$RUN_ID" \
+    --configs milestone4/m4/data/diagnostic_run_configs_trimmed.json \
+    --total-tokens 300000000 --unique-tokens 150000000

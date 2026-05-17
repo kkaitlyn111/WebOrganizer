@@ -141,7 +141,7 @@ def main():
     ap.add_argument("--master", type=Path, default=MASTER_PARQUET)
     ap.add_argument("--max-steps", type=int, default=None,
                     help="Override total steps for smoke test")
-    ap.add_argument("--total-tokens", type=int, default=600_000_000)
+    ap.add_argument("--total-tokens", type=int, default=300_000_000)
     ap.add_argument("--unique-tokens", type=int, default=150_000_000,
                     help="Subsample selection to exactly this many UNIQUE tokens. "
                           "Drop the run if selection has fewer. Set 0 to disable.")
@@ -238,7 +238,7 @@ def main():
     if micro is None and torch.cuda.is_available():
         gpu_mem_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
         # Heuristic: 40GB A100 -> 16; 24GB 3090 -> 4
-        micro = 32 if gpu_mem_gb >= 45 else (16 if gpu_mem_gb >= 35 else 4)
+        micro = 16 if gpu_mem_gb >= 35 else 4
         print(f"  auto micro_batch_size={micro} (gpu_mem={gpu_mem_gb:.1f}GB)")
     tcfg = TrainConfig(total_tokens=args.total_tokens,
                         seed=args.seed + args.run_id,

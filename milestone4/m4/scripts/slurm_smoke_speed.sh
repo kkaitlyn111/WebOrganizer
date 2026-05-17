@@ -23,4 +23,4 @@ nvidia-smi --query-gpu=name,memory.total --format=csv
 # Use a small selection run_id (0016 was 1.4M docs / 1.4B tokens; perfect).
 # Train on 600M to compare apples-to-apples with previous 42min baseline.
 .venv/bin/python3 milestone4/m4/scripts/run_diagnostic.py --run-id 16 --no-wandb \
-    --total-tokens 600000000
+    --total-tokens 300000000 --unique-tokens 150000000

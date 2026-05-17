@@ -164,7 +164,7 @@ def train_and_eval(packed_train_sequences: np.ndarray,
     compiled = False
     if cfg.compile_model:
         try:
-            model = torch.compile(model, mode="max-autotune", fullgraph=False)
+            model = torch.compile(model, mode="default", fullgraph=False)
             compiled = True
         except Exception as e:
             print(f"  torch.compile failed: {e}")
