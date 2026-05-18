@@ -1,0 +1,14 @@
+% Auto-generated. Train R^2 ~ test R^2 indicates the noise ceiling of y is hit,
+% not overfitting. Lifting test R^2 above ~0.66 would require a denoised y.
+\begin{tabular}{lccc}
+\toprule
+Model & Train $R^2$ & Test $R^2$ & \# features \\
+\midrule
+Lasso (linear)     & 0.410 & 0.408 & 46 \\
+EBM no perplex.    & 0.658 & 0.656 & 42 \\
+EBM (all features) & 0.671 & 0.668 & 46 \\
+\midrule
+\multicolumn{4}{l}{\small \emph{Split-half reliability of $y$: $r{=}0.40$}}\\
+\multicolumn{4}{l}{\small \emph{Implied $R^2$ ceiling on full-sample $y$: $\approx 0.57$\,--\,$0.70$}}\\
+\bottomrule
+\end{tabular}

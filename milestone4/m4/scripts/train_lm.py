@@ -42,23 +42,39 @@ class TrainConfig:
     compile_model: bool = True    # only compiles the backbone (not the head)
     bf16: bool = True             # auto-disabled if unsupported
     ce_chunk_size: int = 16384    # chunk size for chunked CE (tokens)
+    model_preset: str = "15m"     # '15m' | '60m' | '120m'
+    run_bench: bool = False       # if True, run HellaSwag/PIQA/ARC/LAMBADA at end
+    bench_subset: int | None = None  # cap per-bench examples (None = preset cap)
+    save_checkpoint: str | None = None  # path to save bf16 state_dict (None = don't save)
 
 
-def build_model(vocab_size: int) -> LlamaForCausalLM:
-    # Hidden=192, inter=576, 6 heads, 12 layers => ~15M params (embed dominates).
+MODEL_PRESETS = {
+    "15m": dict(hidden_size=192, intermediate_size=576, num_hidden_layers=12,
+                 num_attention_heads=6, num_key_value_heads=6),
+    "60m": dict(hidden_size=384, intermediate_size=1024, num_hidden_layers=16,
+                 num_attention_heads=8, num_key_value_heads=8),
+    "120m": dict(hidden_size=512, intermediate_size=1536, num_hidden_layers=18,
+                 num_attention_heads=8, num_key_value_heads=8),
+}
+
+
+def build_model(vocab_size: int, preset: str = "15m") -> LlamaForCausalLM:
+    """preset='15m' (default) keeps the original 15M-param shape; '60m'/'120m'
+    scale hidden/inter/layers for larger comparisons."""
     attn_impl = "sdpa"
     try:
         import flash_attn  # noqa
         attn_impl = "flash_attention_2"
     except Exception:
         pass
+    p = MODEL_PRESETS[preset]
     cfg = LlamaConfig(
         vocab_size=vocab_size,
-        hidden_size=192,
-        intermediate_size=576,
-        num_hidden_layers=12,
-        num_attention_heads=6,
-        num_key_value_heads=6,
+        hidden_size=p["hidden_size"],
+        intermediate_size=p["intermediate_size"],
+        num_hidden_layers=p["num_hidden_layers"],
+        num_attention_heads=p["num_attention_heads"],
+        num_key_value_heads=p["num_key_value_heads"],
         max_position_embeddings=4096,
         rope_theta=10000.0,
         tie_word_embeddings=True,
@@ -176,7 +192,7 @@ def train_and_eval(packed_train_sequences: np.ndarray,
     torch.backends.cudnn.benchmark = True
 
     bf16 = cfg.bf16 and _supports_bf16()
-    model = build_model(cfg.vocab_size).to(device)
+    model = build_model(cfg.vocab_size, preset=cfg.model_preset).to(device)
     print(f"  attn_impl: {getattr(model.config, '_attn_implementation', '?')}")
 
     # Split lm_head from the backbone so we can use a chunked CE.
@@ -288,6 +304,32 @@ def train_and_eval(packed_train_sequences: np.ndarray,
         wandb_run.summary["final_train_loss"] = final_train_loss
         wandb_run.summary["compiled"] = compiled
 
+    if cfg.save_checkpoint:
+        ckpt_path = cfg.save_checkpoint
+        import os
+        os.makedirs(os.path.dirname(ckpt_path) or ".", exist_ok=True)
+        # Save the original (uncompiled) model state_dict in bf16.
+        # 'model' is the LlamaForCausalLM wrapper around `backbone`.
+        sd = {k: v.detach().to(torch.bfloat16).cpu() for k, v in model.state_dict().items()}
+        torch.save({"state_dict": sd, "preset": cfg.model_preset,
+                     "vocab_size": cfg.vocab_size, "val_loss": val_loss},
+                    ckpt_path)
+        print(f"  saved checkpoint to {ckpt_path}  ({sum(v.numel() for v in sd.values())/1e6:.1f}M params)")
+
+    bench_result: dict = {}
+    if cfg.run_bench:
+        print("  running downstream benchmarks...")
+        from transformers import AutoTokenizer
+        from bench_eval import eval_benchmarks
+        tok = AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
+        t_b = time.time()
+        bench_result = eval_benchmarks(backbone, lm_head_weight, tok, device,
+                                        bf16=bf16, subset=cfg.bench_subset)
+        print(f"  benchmarks done in {time.time()-t_b:.1f}s")
+        if wandb_run is not None:
+            for k, v in bench_result.items():
+                wandb_run.summary[k] = v
+
     return {
         "val_loss": val_loss,
         "n_params": int(n_params),
@@ -296,4 +338,5 @@ def train_and_eval(packed_train_sequences: np.ndarray,
         "final_train_loss": final_train_loss,
         "bf16": bf16,
         "compiled": compiled,
+        **bench_result,
     }

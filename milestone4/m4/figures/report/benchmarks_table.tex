@@ -1,0 +1,18 @@
+% Auto-generated. Bold = best on this metric; underlined = worst on this metric.
+\begin{tabular}{lcccc}
+\toprule
+Selection strategy & CC val loss & HellaSwag & ARC-Easy & LAMBADA loss \\
+ & (nats $\downarrow$) & (acc $\uparrow$) & (acc $\uparrow$) & (nats $\downarrow$) \\
+\midrule
+Random (seed 42) & 3.884 & 0.313 & 0.349 & 4.528 \\
+Random (seed 43) & 3.887 & 0.315 & 0.332 & 4.564 \\
+Random (seed 44) & 3.896 & 0.311 & 0.340 & 4.501 \\
+EBM within-topic & \textbf{3.873} & \textbf{0.320} & \underline{0.316} & 4.724 \\
+EBM-full & 3.914 & 0.308 & 0.337 & 5.168 \\
+EBM-no-PC & 3.921 & 0.307 & 0.326 & 5.169 \\
+EBM-full (seed 43) & 3.918 & 0.311 & 0.326 & 5.212 \\
+Lasso & 3.960 & \underline{0.303} & 0.370 & \underline{5.307} \\
+DCLM-fastText & \underline{4.006} & 0.304 & \textbf{0.379} & \textbf{4.350} \\
+FineWeb-Edu & 3.967 & 0.308 & 0.365 & 4.746 \\
+\bottomrule
+\end{tabular}
